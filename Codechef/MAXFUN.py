@@ -15,3 +15,4 @@ try:
         print(f(l))
 except:
     pass
+    

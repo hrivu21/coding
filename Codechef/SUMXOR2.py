@@ -2,7 +2,8 @@ from collections import defaultdict
 import random
 
 
-def f(N, L, M):
+def f(N, L):
+    
     mod = 998244353
     resSum = 0
     d = defaultdict(list)
@@ -23,24 +24,24 @@ def f(N, L, M):
     return resSum % mod
 
 
-# try:
-#     N = int(input())
-#     L = list(map(int, input().split()))
-#     Q = int(input())
-#     for _ in range(Q):
-#         M = int(input())
-#         print(f(N, L, M))
+try:
+    N = int(input())
+    L = list(map(int, input().split()))
+    Q = int(input())
+    for _ in range(Q):
+        M = int(input())
+        print(f(N, L, M))
 
-# except Exception as e:
-#     print(e)
+except Exception as e:
+    print(e)
 
-N = random.randrange(10 ** 2, 2 * 10 ** 2)
-L = list()
-for _ in range(N):
-    L.append(random.randrange(1, 2 ** 30))
-M = N
-print(N)
-print("Start")
+# N = random.randrange(10 ** 2, 2 * 10 ** 2)
+# L = list()
+# for _ in range(N):
+#     L.append(random.randrange(1, 2 ** 30))
+# M = N
+# print(N)
+# print("Start")
 
 
-print(f(N, L, M))
+# print(f(N, L, M))
