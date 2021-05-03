@@ -1,5 +1,6 @@
-#include <stdio.h>
-#include <conio.h>
+#include <bits/stdc++.h>
+#include <vector>
+using namespace std;
 
 // void p(int x, int y)
 // {
@@ -44,14 +45,16 @@
 
 int main()
 {
-    int x = 0, z = 10;
-    if (x++)
-        z = 20;
-    else if (x == 0)
-        z = 30;
-    z++;
-    printf("%d", z);
+	int n;
+	cin >> n;
 
-    int 3a;
-    3a = 10;
+    vector<int> vect;
+    vect.assign(n, 0);
+
+    int q;
+    for(int i=0; i<n; i++){
+    	cin >> vect[i];
+    }
+
+    cout << vect[0] << ' ' << vect[1] << endl;
 }

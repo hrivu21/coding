@@ -1,15 +1,15 @@
-def is_in_grid(i, j):
+def is_in_grid(i: int, j: int) -> bool:
     return i >= 0 and i < r and j >= 0 and j < c
 
 
-def is_Wolf_adjacent(i, j):
+def is_Wolf_adjacent(i: int, j: int) -> bool:
     return (i-1) >= 0 and grid[i-1][j] == 'W' or \
         (i+1) < r and grid[i+1][j] == 'W' or \
         (j-1) >= 0 and grid[i][j-1] == 'W' or \
         (j+1) < c and grid[i][j+1] == 'W'
 
 
-def floodfill(grid, i, j, visited):  # -> bool
+def floodfill(grid, i: int, j: int, visited: set) -> bool:
     if (i, j) in visited:
         return True
 
@@ -48,7 +48,7 @@ def floodfill(grid, i, j, visited):  # -> bool
     return w and x and y and z
 
 
-def is_protectable(grid):		# -> bool
+def is_protectable(grid) -> bool:
     visited = set()
 
     for i in range(r):
