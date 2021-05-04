@@ -1,3 +1,5 @@
+# AC
+
 def is_in_grid(i: int, j: int) -> bool:
     return i >= 0 and i < r and j >= 0 and j < c
 
