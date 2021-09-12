@@ -1,11 +1,11 @@
-#include<bits/stdc++.h>
-#include<iostream>
-#include<string>
-#include<vector>
-#include<list>
-#include<set>
-#include<map>
-#include<math.h>
+#include <bits/stdc++.h>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <list>
+#include <set>
+#include <map>
+#include <math.h>
 
 using namespace std;
 
@@ -30,7 +30,7 @@ public:
 
         if (height[i1] < height[i2])
             return findMaxArea(height, i1+1, i2, maxCap);
-        else 
+        else
             return findMaxArea(height, i1, i2-1, maxCap);
     }
 
@@ -42,7 +42,7 @@ public:
 
 int main(){
     ios_base::sync_with_stdio(false);
-    cin.tie(NULL); 
+    cin.tie(NULL);
 
     Solution obj;
     vector<int> height{1,8,6,2,5,4,8,3,7};

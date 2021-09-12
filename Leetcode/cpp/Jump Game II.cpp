@@ -26,7 +26,7 @@ public:
     int jump(vector<int> &nums){
         int jmp_cnt = 0;
         set<int> visited;
-
+        
         vector<int> queue{0};
         visited.insert(0);
 
