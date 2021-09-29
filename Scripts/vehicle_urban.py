@@ -45,7 +45,7 @@ def find_greater(l, value):  # l assumed to be sorted
 
 
 def find_lesser(l, value):  # l assumed to be sorted
-    for i in range(len(l)-1, -1, -1):
+    for i in range(len(l) - 1, -1, -1):
         if l[i] < value:
             return i
     return -1
@@ -71,11 +71,27 @@ def find_next_crosslane(x, y, direction):
 
 
 class Vehicle:
-    def __init__(self, x, y, direction, lane_no):
+    def __init__(self, x, y, direction, lane_no, init_speed, id):
         self.x = x
         self.y = y
         self.direction = direction
         self.lane_no = lane_no
+        self.speed = init_speed
+        self.id = id
+
+        self.queue = []
+        self.coor = []
+
+        next_idx = find_next_crosslane(self.x, self.y, self.direction)
+        # next_dir, next_lane_no = None, None
+
+        # enter the 1st element of queue
+        if self.direction == "left" or self.direction == "right":
+            self.queue.append((lane_x_coor[next_idx], self.y))
+        elif self.direction == "up" or self.direction == "down":
+            self.queue.append((self.x, lane_y_coor[next_idx]))
+        else:
+            return "Error message"
 
     def _decide_next_lane_dir(self, paths):
         while True:
@@ -103,8 +119,9 @@ class Vehicle:
 
         return next_dir, next_lane_no
 
-    def decide_next_lane(self, i):  # i -> next crosslane index perpendicular to the current direction
-        print('\n\nEntered a crossroad...')
+    def decide_next_lane(self, i):
+        # i -> next crosslane index perpendicular to the current direction
+        print("\n\nEntered a crossroad...")
         print((self.direction, self.lane_no))
         paths = dict()  # allowed lane changes at crossroads
 
@@ -199,7 +216,7 @@ class Vehicle:
                     # assert(self.lane_no + 1 in vertical['left'] and self.lane_no + 2 in horizontal['left'])
                     paths["up"] = [self.lane_no - 2, self.lane_no - 3]
 
-        print('Paths: ', paths)
+        print("Paths: ", paths)
         print("Next Lane deciding....")
         to_return = self._decide_next_lane_dir(paths)
         print(to_return)
@@ -210,7 +227,9 @@ class Vehicle:
         print("Current point: ", self.x, self.y)
         print("Next point: ", next_point)
 
-        assert bool(self.x == next_point[0]) ^ bool(self.y == next_point[1])       # performing xor
+        assert bool(self.x == next_point[0]) ^ bool(
+            self.y == next_point[1]
+        )  # performing xor
         if self.x == next_point[0]:  # move up/down
             self.lane_no = lane_x_coor.index(self.x)
             if next_point[1] > self.y:
@@ -227,399 +246,440 @@ class Vehicle:
         print("New direction and lane: ", self.direction, self.lane_no)
         return None
 
-    def move(self, speed, time, interval):
-        step = speed * interval
-        print("step = ", step)
-        coor = list()
-        t = 0
-        queue = []  # list of the points to be visited
+    def move(self, interval):
+        # # step = speed * interval
+        # # print("step = ", step)
+        # coor = list()
+        # t = 0
+        # queue = []  # list of the points to be visited
 
-        next_idx = find_next_crosslane(self.x, self.y, self.direction)
-        next_dir, next_lane_no = None, None
+        # next_idx = find_next_crosslane(self.x, self.y, self.direction)
+        # next_dir, next_lane_no = None, None
+        #
+        # # enter the 1st element of queue
+        # if self.direction == "left" or self.direction == "right":
+        #     queue.append((lane_x_coor[next_idx], self.y))
+        # elif self.direction == "up" or self.direction == "down":
+        #     queue.append((self.x, lane_y_coor[next_idx]))
+        # else:
+        #     return "Error message"
 
-        # enter the 1st element of queue
-        if self.direction == "left" or self.direction == "right":
-            queue.append((lane_x_coor[next_idx], self.y))
-        elif self.direction == "up" or self.direction == "down":
-            queue.append((self.x, lane_y_coor[next_idx]))
+        # print("Queue: ", queue)
+        # t = 0
+        # while t <= time:
+
+        if self.direction in "right":
+            self.x += self.speed * interval
+
+            if self.x >= self.queue[0][0]:  # crossing an intersection
+                self.x = self.queue[0][0]
+                curr_pos = self.queue.pop(0)  # current intersection coordinates
+
+                if len(self.queue) == 0:  # signifies entering a crossroad
+                    # add to self.queue the points to visit in the current crossroad and first intersection in the next crossroad
+
+                    next_dir, next_lane_no = self.decide_next_lane(
+                        lane_x_coor.index(self.x)
+                    )
+
+                    if next_dir == "left":
+                        n_y = lane_y_coor[next_lane_no]
+                        self.queue.append((self.x, n_y))
+                        # next crossroad
+                        n_x = lane_x_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "right":
+                        n_y = lane_y_coor[next_lane_no]
+                        if self.lane_no != next_lane_no:
+                            self.queue.append((self.x, n_y))
+                        n_x = lane_x_coor[lane_x_coor.index(self.x) + 3]
+                        self.queue.append((n_x, n_y))
+                        # next crossroad
+                        # nn_x = lane_x_coor[lane_x_coor.index(self.x) + 4]
+                        # self.queue.append((nn_x, n_y))
+                        n_x = lane_x_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "up":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        if (n_x, n_y) != curr_pos:
+                            self.queue.append((n_x, n_y))
+                        if (self.lane_no + 1) in horizontal["right"]:
+                            n_y = lane_y_coor[self.lane_no + 1]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        if len(self.queue):
+                            n_y = lane_y_coor[
+                                find_next_crosslane(
+                                    self.queue[-1][0], self.queue[-1][1], next_dir
+                                )
+                            ]
+                        else:
+                            n_y = lane_y_coor[
+                                find_next_crosslane(self.x, self.y, next_dir)
+                            ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "down":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        self.queue.append((n_x, n_y))
+                        if (self.lane_no - 1) in horizontal["right"]:
+                            n_y = lane_y_coor[self.lane_no - 3]
+                            self.queue.append((n_x, n_y))
+                        else:
+                            n_y = lane_y_coor[self.lane_no - 2]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        n_y = lane_y_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+                    else:
+                        pass
+
+                print("Queue : ", self.queue)
+                next_point = self.queue[0]
+                self.set_new_direction_lane(next_point)
+
+        elif self.direction in "left":
+            self.x -= self.speed * interval
+
+            if self.x <= self.queue[0][0]:  # crossing an intersection
+                self.x = self.queue[0][0]
+                curr_pos = self.queue.pop(
+                    0
+                )  # current position i.e. intersection coordinates
+
+                if len(self.queue) == 0:  # signifies entering a crossroad
+                    # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
+
+                    next_dir, next_lane_no = self.decide_next_lane(
+                        lane_x_coor.index(self.x)
+                    )
+
+                    if next_dir == "right":
+                        n_y = lane_y_coor[next_lane_no]
+                        self.queue.append((self.x, n_y))
+                        # next crossroad
+                        n_x = lane_x_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "left":
+                        n_y = lane_y_coor[next_lane_no]
+                        if self.lane_no != next_lane_no:
+                            self.queue.append((self.x, n_y))
+                        n_x = lane_x_coor[lane_x_coor.index(self.x) - 3]
+                        self.queue.append((n_x, n_y))
+                        # next crossroad
+                        # nn_x = lane_x_coor[lane_x_coor.index(self.x) - 4]
+                        # self.queue.append((nn_x, n_y))
+                        n_x = lane_x_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "down":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        if (n_x, n_y) != curr_pos:
+                            self.queue.append((n_x, n_y))
+                        if (self.lane_no - 1) in horizontal["left"]:
+                            n_y = lane_y_coor[self.lane_no - 1]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        if len(self.queue):
+                            n_y = lane_y_coor[
+                                find_next_crosslane(
+                                    self.queue[-1][0], self.queue[-1][1], next_dir
+                                )
+                            ]
+                        else:
+                            n_y = lane_y_coor[
+                                find_next_crosslane(self.x, self.y, next_dir)
+                            ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "up":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        self.queue.append((n_x, n_y))
+                        if (self.lane_no + 1) in horizontal["left"]:
+                            n_y = lane_y_coor[self.lane_no + 3]
+                            self.queue.append((n_x, n_y))
+                        else:
+                            n_y = lane_y_coor[self.lane_no + 2]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        n_y = lane_y_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+                    else:
+                        pass
+
+                print("Queue : ", self.queue)
+                next_point = self.queue[0]
+                self.set_new_direction_lane(next_point)
+
+        elif self.direction in "up":
+            self.y += self.speed * interval
+
+            if self.y >= self.queue[0][1]:  # crossing an intersection
+                self.y = self.queue[0][1]
+                curr_pos = self.queue.pop(
+                    0
+                )  # current position i.e. intersection coordinates
+
+                if len(self.queue) == 0:  # signifies entering a crossroad
+                    # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
+
+                    next_dir, next_lane_no = self.decide_next_lane(
+                        lane_y_coor.index(self.y)
+                    )
+
+                    if next_dir == "down":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        self.queue.append((n_x, n_y))
+                        # next crossroad
+                        n_y = lane_y_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "up":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        if self.lane_no != next_lane_no:
+                            self.queue.append((n_x, n_y))
+                        n_y = lane_y_coor[lane_y_coor.index(self.y) + 3]
+                        self.queue.append((n_x, n_y))
+                        # next crossroad
+                        # nn_x = lane_x_coor[lane_x_coor.index(self.x) + 4]
+                        # self.queue.append((nn_x, n_y))
+                        n_y = lane_y_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "left":
+                        n_y = lane_y_coor[next_lane_no]
+                        n_x = self.x
+                        if (n_x, n_y) != curr_pos:
+                            self.queue.append((n_x, n_y))
+                        if (self.lane_no - 1) in vertical["up"]:
+                            n_x = lane_x_coor[self.lane_no - 1]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        if len(self.queue):
+                            n_x = lane_x_coor[
+                                find_next_crosslane(
+                                    self.queue[-1][0], self.queue[-1][1], next_dir
+                                )
+                            ]
+                        else:
+                            n_x = lane_x_coor[
+                                find_next_crosslane(self.x, self.y, next_dir)
+                            ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "right":
+                        n_y = lane_y_coor[next_lane_no]
+                        n_x = self.x
+                        self.queue.append((n_x, n_y))
+                        if (self.lane_no - 1) in vertical["up"]:
+                            n_x = lane_x_coor[self.lane_no + 2]
+                            self.queue.append((n_x, n_y))
+                        else:
+                            n_x = lane_x_coor[self.lane_no + 3]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        n_x = lane_x_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+                    else:
+                        pass
+
+                print("Queue : ", self.queue)
+                next_point = self.queue[0]
+                self.set_new_direction_lane(next_point)
+
+        elif self.direction in "down":
+            self.y -= self.speed * interval
+
+            if self.y <= self.queue[0][1]:  # crossing an intersection
+                self.y = self.queue[0][1]
+                curr_pos = self.queue.pop(
+                    0
+                )  # current position i.e. intersection coordinates
+
+                if len(self.queue) == 0:  # signifies entering a crossroad
+                    # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
+
+                    next_dir, next_lane_no = self.decide_next_lane(
+                        lane_y_coor.index(self.y)
+                    )
+
+                    if next_dir == "up":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        self.queue.append((n_x, n_y))
+                        # next crossroad
+                        n_y = lane_y_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "down":
+                        n_x = lane_x_coor[next_lane_no]
+                        n_y = self.y
+                        if self.lane_no != next_lane_no:
+                            self.queue.append((n_x, n_y))
+                        n_y = lane_y_coor[lane_y_coor.index(self.y) - 3]
+                        self.queue.append((n_x, n_y))
+                        # next crossroad
+                        # nn_x = lane_x_coor[lane_x_coor.index(self.x) + 4]
+                        # self.queue.append((nn_x, n_y))
+                        n_y = lane_y_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "right":
+                        n_y = lane_y_coor[next_lane_no]
+                        n_x = self.x
+                        if (n_x, n_y) != curr_pos:
+                            self.queue.append((n_x, n_y))
+                        if (self.lane_no + 1) in vertical["down"]:
+                            n_x = lane_x_coor[self.lane_no + 1]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        if len(self.queue):
+                            n_x = lane_x_coor[
+                                find_next_crosslane(
+                                    self.queue[-1][0], self.queue[-1][1], next_dir
+                                )
+                            ]
+                        else:
+                            n_x = lane_x_coor[
+                                find_next_crosslane(self.x, self.y, next_dir)
+                            ]
+                        self.queue.append((n_x, n_y))
+
+                    elif next_dir == "left":
+                        n_y = lane_y_coor[next_lane_no]
+                        n_x = self.x
+                        self.queue.append((n_x, n_y))
+                        if (self.lane_no + 1) in vertical["down"]:
+                            n_x = lane_x_coor[self.lane_no - 2]
+                            self.queue.append((n_x, n_y))
+                        else:
+                            n_x = lane_x_coor[self.lane_no - 3]
+                            self.queue.append((n_x, n_y))
+                        # next crossroad
+                        n_x = lane_x_coor[
+                            find_next_crosslane(
+                                self.queue[-1][0], self.queue[-1][1], next_dir
+                            )
+                        ]
+                        self.queue.append((n_x, n_y))
+                    else:
+                        pass
+
+                print("Queue : ", self.queue)
+                next_point = self.queue[0]
+                self.set_new_direction_lane(next_point)
+
         else:
-            return "Error message"
+            print("XXXXXXXXXXXXXX")
+            return
 
-        print("Queue: ", queue)
-        t = 0
-        while t <= time:
-            if self.direction in "right":
-                self.x += step
+        self.coor.append((self.x, self.y))
+        # t += interval
 
-                if self.x >= queue[0][0]:       # crossing an intersection
-                    self.x = queue[0][0]
-                    curr_pos = queue.pop(0)     # current intersection coordinates
+        # return coor
 
-                    if len(queue) == 0:  # signifies entering a crossroad
-                        # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
 
-                        next_dir, next_lane_no = self.decide_next_lane(lane_x_coor.index(self.x))
-
-                        if next_dir == "left":
-                            n_y = lane_y_coor[next_lane_no]
-                            queue.append((self.x, n_y))
-                            # next crossroad
-                            n_x = lane_x_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "right":
-                            n_y = lane_y_coor[next_lane_no]
-                            if self.lane_no != next_lane_no:
-                                queue.append((self.x, n_y))
-                            n_x = lane_x_coor[lane_x_coor.index(self.x) + 3]
-                            queue.append((n_x, n_y))
-                            # next crossroad
-                            # nn_x = lane_x_coor[lane_x_coor.index(self.x) + 4]
-                            # queue.append((nn_x, n_y))
-                            n_x = lane_x_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "up":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            if (n_x, n_y) != curr_pos:
-                                queue.append((n_x, n_y))
-                            if (self.lane_no + 1) in horizontal["right"]:
-                                n_y = lane_y_coor[self.lane_no + 1]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            if len(queue):
-                                n_y = lane_y_coor[
-                                    find_next_crosslane(
-                                        queue[-1][0], queue[-1][1], next_dir
-                                    )
-                                ]
-                            else:
-                                n_y = lane_y_coor[
-                                    find_next_crosslane(
-                                        self.x, self.y, next_dir
-                                    )
-                                ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "down":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            queue.append((n_x, n_y))
-                            if (self.lane_no - 1) in horizontal["right"]:
-                                n_y = lane_y_coor[self.lane_no - 3]
-                                queue.append((n_x, n_y))
-                            else:
-                                n_y = lane_y_coor[self.lane_no - 2]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            n_y = lane_y_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-                        else:
-                            pass
-
-                    print('Queue : ', queue)
-                    next_point = queue[0]
-                    self.set_new_direction_lane(next_point)
-
-            elif self.direction in "left":
-                self.x -= step
-
-                if self.x <= queue[0][0]:  # crossing an intersection
-                    self.x = queue[0][0]
-                    curr_pos = queue.pop(
-                        0
-                    )  # current position i.e. intersection coordinates
-
-                    if len(queue) == 0:  # signifies entering a crossroad
-                        # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
-
-                        next_dir, next_lane_no = self.decide_next_lane(lane_x_coor.index(self.x))
-
-                        if next_dir == "right":
-                            n_y = lane_y_coor[next_lane_no]
-                            queue.append((self.x, n_y))
-                            # next crossroad
-                            n_x = lane_x_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "left":
-                            n_y = lane_y_coor[next_lane_no]
-                            if self.lane_no != next_lane_no:
-                                queue.append((self.x, n_y))
-                            n_x = lane_x_coor[lane_x_coor.index(self.x) - 3]
-                            queue.append((n_x, n_y))
-                            # next crossroad
-                            # nn_x = lane_x_coor[lane_x_coor.index(self.x) - 4]
-                            # queue.append((nn_x, n_y))
-                            n_x = lane_x_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "down":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            if (n_x, n_y) != curr_pos:
-                                queue.append((n_x, n_y))
-                            if (self.lane_no - 1) in horizontal["left"]:
-                                n_y = lane_y_coor[self.lane_no - 1]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            if len(queue):
-                                n_y = lane_y_coor[
-                                    find_next_crosslane(
-                                        queue[-1][0], queue[-1][1], next_dir
-                                    )
-                                ]
-                            else:
-                                n_y = lane_y_coor[
-                                    find_next_crosslane(
-                                        self.x, self.y, next_dir
-                                    )
-                                ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "up":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            queue.append((n_x, n_y))
-                            if (self.lane_no + 1) in horizontal["left"]:
-                                n_y = lane_y_coor[self.lane_no + 3]
-                                queue.append((n_x, n_y))
-                            else:
-                                n_y = lane_y_coor[self.lane_no + 2]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            n_y = lane_y_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-                        else:
-                            pass
-
-                    print('Queue : ', queue)
-                    next_point = queue[0]
-                    self.set_new_direction_lane(next_point)
-
-            elif self.direction in "up":
-                self.y += step
-
-                if self.y >= queue[0][1]:  # crossing an intersection
-                    self.y = queue[0][1]
-                    curr_pos = queue.pop(
-                        0
-                    )  # current position i.e. intersection coordinates
-
-                    if len(queue) == 0:  # signifies entering a crossroad
-                        # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
-
-                        next_dir, next_lane_no = self.decide_next_lane(lane_y_coor.index(self.y))
-
-                        if next_dir == "down":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            queue.append((n_x, n_y))
-                            # next crossroad
-                            n_y = lane_y_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "up":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            if self.lane_no != next_lane_no:
-                                queue.append((n_x, n_y))
-                            n_y = lane_y_coor[lane_y_coor.index(self.y) + 3]
-                            queue.append((n_x, n_y))
-                            # next crossroad
-                            # nn_x = lane_x_coor[lane_x_coor.index(self.x) + 4]
-                            # queue.append((nn_x, n_y))
-                            n_y = lane_y_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "left":
-                            n_y = lane_y_coor[next_lane_no]
-                            n_x = self.x
-                            if (n_x, n_y) != curr_pos:
-                                queue.append((n_x, n_y))
-                            if (self.lane_no - 1) in vertical["up"]:
-                                n_x = lane_x_coor[self.lane_no - 1]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            if len(queue):
-                                n_x = lane_x_coor[
-                                    find_next_crosslane(
-                                        queue[-1][0], queue[-1][1], next_dir
-                                    )
-                                ]
-                            else:
-                                n_x = lane_x_coor[
-                                    find_next_crosslane(
-                                        self.x, self.y, next_dir
-                                    )
-                                ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "right":
-                            n_y = lane_y_coor[next_lane_no]
-                            n_x = self.x
-                            queue.append((n_x, n_y))
-                            if (self.lane_no - 1) in vertical["up"]:
-                                n_x = lane_x_coor[self.lane_no + 2]
-                                queue.append((n_x, n_y))
-                            else:
-                                n_x = lane_x_coor[self.lane_no + 3]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            n_x = lane_x_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-                        else:
-                            pass
-
-                    print('Queue : ', queue)
-                    next_point = queue[0]
-                    self.set_new_direction_lane(next_point)
-
-            elif self.direction in "down":
-                self.y -= step
-
-                if self.y <= queue[0][1]:  # crossing an intersection
-                    self.y = queue[0][1]
-                    curr_pos = queue.pop(
-                        0
-                    )  # current position i.e. intersection coordinates
-
-                    if len(queue) == 0:  # signifies entering a crossroad
-                        # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
-
-                        next_dir, next_lane_no = self.decide_next_lane(lane_y_coor.index(self.y))
-
-                        if next_dir == "up":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            queue.append((n_x, n_y))
-                            # next crossroad
-                            n_y = lane_y_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "down":
-                            n_x = lane_x_coor[next_lane_no]
-                            n_y = self.y
-                            if self.lane_no != next_lane_no:
-                                queue.append((n_x, n_y))
-                            n_y = lane_y_coor[lane_y_coor.index(self.y) - 3]
-                            queue.append((n_x, n_y))
-                            # next crossroad
-                            # nn_x = lane_x_coor[lane_x_coor.index(self.x) + 4]
-                            # queue.append((nn_x, n_y))
-                            n_y = lane_y_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "right":
-                            n_y = lane_y_coor[next_lane_no]
-                            n_x = self.x
-                            if (n_x, n_y) != curr_pos:
-                                queue.append((n_x, n_y))
-                            if (self.lane_no + 1) in vertical["down"]:
-                                n_x = lane_x_coor[self.lane_no + 1]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            if len(queue):
-                                n_x = lane_x_coor[
-                                    find_next_crosslane(
-                                        queue[-1][0], queue[-1][1], next_dir
-                                    )
-                                ]
-                            else:
-                                n_x = lane_x_coor[
-                                    find_next_crosslane(
-                                        self.x, self.y, next_dir
-                                    )
-                                ]
-                            queue.append((n_x, n_y))
-
-                        elif next_dir == "left":
-                            n_y = lane_y_coor[next_lane_no]
-                            n_x = self.x
-                            queue.append((n_x, n_y))
-                            if (self.lane_no + 1) in vertical["down"]:
-                                n_x = lane_x_coor[self.lane_no - 2]
-                                queue.append((n_x, n_y))
-                            else:
-                                n_x = lane_x_coor[self.lane_no - 3]
-                                queue.append((n_x, n_y))
-                            # next crossroad
-                            n_x = lane_x_coor[
-                                find_next_crosslane(
-                                    queue[-1][0], queue[-1][1], next_dir
-                                )
-                            ]
-                            queue.append((n_x, n_y))
-                        else:
-                            pass
-
-                    print('Queue : ', queue)
-                    next_point = queue[0]
-                    self.set_new_direction_lane(next_point)
-
-            else:
-                print("XXXXXXXXXXXXXX")
-                return
-
-            coor.append((self.x, self.y))
-            t += interval
-
-        return coor
+def find_pairs(vehicles, max_sep):
+    # vehicles -> list of Vehicle objects
+    # max_sep -> maximum separation between 2 vehicles to form a pair
+    n = len(vehicles)
+    pairs = []
+    v1, v2 = None, None
+    for i in range(n):
+        for j in range(i + 1, n):
+            v1, v2 = vehicles[i], vehicles[j]
+            if (v1.x - v2.x) ** 2 + (v1.y - v2.y) ** 2 <= max_sep ** 2:
+                pairs.append((v1.id, v2.id))
+    return pairs
 
 
 if __name__ == "__main__":
-    for _ in range(5):
-        x, y = 100, lane_y_coor[4]
-        d = "right"
-        l = 4
-        v = Vehicle(x, y, d, l)
+    # for _ in range(5):
+    x, y = 240, lane_y_coor[4]
+    d = "right"
+    l = 4
+    speed = 20
+    v1 = Vehicle(x, y, d, l, speed, 1)
+    v2 = Vehicle(x-5, y, d, l, speed, 2)
+    v3 = Vehicle(x-10, y, d, l, speed, 3)
+    v4 = Vehicle(x-15, y, d, l, speed, 4)
+    v5 = Vehicle(x-20, y, d, l, speed, 5)
+    v6 = Vehicle(x-25, y, d, l, speed, 6)
 
-        speed, time, interval = 50, 40, 0.05
-        assert speed*interval < 3.5
-        print(v.move(speed, time, interval))
-        print('\n\n\n\n')
+    vehicles = [v1, v2, v3, v4, v5, v6]
+
+    time, interval = 5, 0.15
+    assert speed * interval < 3.5
+
+    # print(v.move(time, interval))
+
+    pairs_over_time = []  # list of lists of tuples
+    pairs = []  # lists of tuples
+    t = 0
+    while t <= time:
+        for v in vehicles:
+            # print(v.id)
+            v.move(interval)
+            pairs = find_pairs(vehicles, 10)
+            pairs_over_time.append(pairs)
+        t += interval
+
+    for v in vehicles:
+        print(v.coor,'\n\n')
+        pass
+
+    for l in pairs_over_time:
+        print(l)
