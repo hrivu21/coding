@@ -1,4 +1,8 @@
-import random
+import random, math
+import numpy as np
+import matplotlib.pyplot as plt 
+from math import log10
+
 
 # random.seed(2)
 
@@ -94,28 +98,31 @@ class Vehicle:
             return "Error message"
 
     def _decide_next_lane_dir(self, paths):
-        while True:
-            r1, r2 = random.random(), random.random()
-            if r1 < 0.25:  # right
-                if "right" in paths:
-                    next_dir = "right"
-                    next_lane_no = paths["right"][0] if r2 < 0.5 else paths["right"][1]
-                    break
-            elif r1 < 0.5:
-                if "left" in paths:
-                    next_dir = "left"
-                    next_lane_no = paths["left"][0] if r2 < 0.5 else paths["left"][1]
-                    break
-            elif r1 < 0.75:
-                if "up" in paths:
-                    next_dir = "up"
-                    next_lane_no = paths["up"][0] if r2 < 0.5 else paths["up"][1]
-                    break
-            else:
-                if "down" in paths:
-                    next_dir = "down"
-                    next_lane_no = paths["down"][0] if r2 < 0.5 else paths["down"][1]
-                    break
+        # while True:
+        #     r1, r2 = random.random(), random.random() 
+        #     if r1 < 0.25:  # right
+        #         if "right" in paths:
+        #             next_dir = "right"
+        #             next_lane_no = paths["right"][0] if r2 < 0.5 else paths["right"][1]
+        #             break
+        #     elif r1 < 0.5:
+        #         if "left" in paths:
+        #             next_dir = "left"
+        #             next_lane_no = paths["left"][0] if r2 < 0.5 else paths["left"][1]
+        #             break
+        #     elif r1 < 0.75:
+        #         if "up" in paths:
+        #             next_dir = "up"
+        #             next_lane_no = paths["up"][0] if r2 < 0.5 else paths["up"][1]
+        #             break
+        #     else:
+        #         if "down" in paths:
+        #             next_dir = "down"
+        #             next_lane_no = paths["down"][0] if r2 < 0.5 else paths["down"][1]
+        #             break
+
+        next_dir = random.choice(list(paths.keys()))
+        next_lane_no = random.choice(paths[next_dir])
 
         return next_dir, next_lane_no
 
@@ -537,9 +544,7 @@ class Vehicle:
 
             if self.y <= self.queue[0][1]:  # crossing an intersection
                 self.y = self.queue[0][1]
-                curr_pos = self.queue.pop(
-                    0
-                )  # current position i.e. intersection coordinates
+                curr_pos = self.queue.pop(0)  # current position i.e. intersection coordinates
 
                 if len(self.queue) == 0:  # signifies entering a crossroad
                     # add to queue the points to visit in the current crossroad and first intersection in the next crossroad
@@ -646,40 +651,136 @@ def find_pairs(vehicles, max_sep):
     return pairs
 
 
-if __name__ == "__main__":
-    # for _ in range(5):
+def in_same_lane(v1, v2):
+    return v1.lane_no == v2.lane_no and v1.direction == v2.direction
+
+
+def is_LOS(vehicles, v1, v2):
+    assert in_same_lane(v1, v2)
+    for v in vehicles:
+        if not in_same_lane(v, v1):
+            continue
+        if v1.direction == "left" or v1.direction == "right":
+            if (v.x - v1.x) * (v.x - v2.x) < 0:  # v is in between v1 and v2
+                return False
+        else:
+            if (v.y - v1.y) * (v.y - v2.y) < 0:
+                return False
+    return True
+
+
+def calculate_PL_shadow(n, vehicles, D, PL, S, N_S, fc, d_corr, sigmaLOS, sigmaNLOS):
+    # n = len(vehicles)
+    # PT = np.ones((n, n))
+    # PL = np.ones((n, n))
+
+    for i in range(n):
+        for j in range(i + 1, n):
+        
+            if in_same_lane(vehicles[i], vehicles[j]):
+                # if is_LOS(vehicles, vehicles[i], vehicles[j]):
+                PL[i][j] = 38.77 + 16.7*log10(D[i][j]) + 18.2*log10(fc)
+                N_S[i][j] = np.random.normal(0, sigmaLOS)
+            else:
+                PL[i][j] = 36.85 + 30*log10(D[i][j]) + 18.9*log10(fc)
+                N_S[i][j] = np.random.normal(0, sigmaNLOS)
+
+            # PL[j][i] = PL[i][j]
+            # N_S[j][i] = N_S[i][j]
+
+    # print(N_S)
+    # print("************************************")
+    S = math.e**(-D/d_corr) * S + (1 - math.e**(-2*D/d_corr))**0.5 * N_S
+    # print(S)
+
+    # PR = PT / 10**(PL/10)
+    return S
+
+def apply_rayleigh(Pr, N):
+    for i in range(N):
+        for j in range(i+1, N):
+            Pr[i][j] *= np.random.exponential(1)
+            # Pr[j][i] = Pr[i][j]
+    return
+
+
+def main():
     x, y = 240, lane_y_coor[4]
     d = "right"
     l = 4
     speed = 20
-    v1 = Vehicle(x, y, d, l, speed, 1)
-    v2 = Vehicle(x-5, y, d, l, speed, 2)
-    v3 = Vehicle(x-10, y, d, l, speed, 3)
-    v4 = Vehicle(x-15, y, d, l, speed, 4)
-    v5 = Vehicle(x-20, y, d, l, speed, 5)
-    v6 = Vehicle(x-25, y, d, l, speed, 6)
 
-    vehicles = [v1, v2, v3, v4, v5, v6]
+    vehicles = []
 
-    time, interval = 5, 0.15
+    vehicles.append(Vehicle(x, y, d, l, speed, 1))
+    vehicles.append(Vehicle(x - 5, y, d, l, speed, 2))
+    vehicles.append(Vehicle(x - 10, y, d, l, speed, 3))
+    vehicles.append(Vehicle(x - 15, y, d, l, speed, 4))
+    vehicles.append(Vehicle(x - 20, y, d, l, speed, 5))
+    # vehicles.append(Vehicle(x - 25, y, d, l, speed, 6))
+
+    N = len(vehicles)
+    time, interval = 10, 0.1
     assert speed * interval < 3.5
 
     # print(v.move(time, interval))
 
-    pairs_over_time = []  # list of lists of tuples
-    pairs = []  # lists of tuples
+    # pairs_over_time = []  # list of lists of tuples
+    # pairs = []  # lists of tuples
+
+    Pt = np.full((N, N), 20)        #20dB tramsmit power, 100 in linear
+    D = np.zeros((N, N))
+    PL, S, N_S = np.zeros((N, N)), np.zeros((N, N)), np.zeros((N, N))
+
+    PL_array = []
+    D_array = []
+    Pr_array = []
+
     t = 0
+
     while t <= time:
+        print(f'At time = {t} ms: ')
         for v in vehicles:
-            # print(v.id)
             v.move(interval)
-            pairs = find_pairs(vehicles, 10)
-            pairs_over_time.append(pairs)
+
+        # pairs = find_pairs(vehicles, 10)
+        # pairs_over_time.append(pairs)
+
+        for i in range(N):
+            for j in range(i+1, N):
+                D[i][j] = ((vehicles[i].x - vehicles[j].x)**2 + (vehicles[i].y - vehicles[j].y)**2)**0.5
+                # D[j][i] = D[i][j]
+        
+        S = calculate_PL_shadow(N, vehicles, D, PL, S, N_S, fc=4, d_corr=10, sigmaLOS=3, sigmaNLOS=4)
+        print(D)
+        # print(PL)
+        # print(N_S)
+        # print(S)
+
+        Pr = Pt - PL - S
+        apply_rayleigh(Pr, N)
+        print(Pr)
+
         t += interval
 
-    for v in vehicles:
-        print(v.coor,'\n\n')
-        pass
+        print("**************************************************")
+        # D_array.append(D[0][1])
+        # PL_array.append(PL[0][1])
+        # Pr_array.append(Pr[0][1])
+        
+    
+    # plt.plot(D_array)
+    # plt.plot(PL_array)
+    # plt.plot(Pr_array)
+    # plt.show()
+    
+    # for v in vehicles:
+    #     print(v.coor, "\n\n")
+    #     pass
 
-    for l in pairs_over_time:
-        print(l)
+    # for l in pairs_over_time:
+    #     print(l)
+  
+
+if __name__ == "__main__":
+    main()
