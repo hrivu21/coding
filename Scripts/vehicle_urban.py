@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from math import log10
 
 
-# random.seed(2)
+random.seed(5)
 
 horizontal = {"right": (0, 1, 4, 5, 8, 9), "left": (2, 3, 6, 7, 10, 11)}
 
@@ -699,7 +699,8 @@ def calculate_PL_shadow(n, vehicles, D, PL, S, N_S, fc, d_corr, sigmaLOS, sigmaN
 def apply_rayleigh(Pr, N):
     for i in range(N):
         for j in range(i+1, N):
-            Pr[i][j] *= np.random.exponential(1)
+            Pr_lin_ij = 10**(Pr[i][j]/10)
+            Pr[i][j] = 10*log10(np.random.exponential(1)*Pr_lin_ij)
             # Pr[j][i] = Pr[i][j]
     return
 
@@ -714,13 +715,13 @@ def main():
 
     vehicles.append(Vehicle(x, y, d, l, speed, 1))
     vehicles.append(Vehicle(x - 5, y, d, l, speed, 2))
-    vehicles.append(Vehicle(x - 10, y, d, l, speed, 3))
-    vehicles.append(Vehicle(x - 15, y, d, l, speed, 4))
-    vehicles.append(Vehicle(x - 20, y, d, l, speed, 5))
+    # vehicles.append(Vehicle(x - 10, y, d, l, speed, 3))
+    # vehicles.append(Vehicle(x - 15, y, d, l, speed, 4))
+    # vehicles.append(Vehicle(x - 20, y, d, l, speed, 5))
     # vehicles.append(Vehicle(x - 25, y, d, l, speed, 6))
 
     N = len(vehicles)
-    time, interval = 10, 0.1
+    time, interval = 15, 0.1
     assert speed * interval < 3.5
 
     # print(v.move(time, interval))
@@ -751,28 +752,28 @@ def main():
                 D[i][j] = ((vehicles[i].x - vehicles[j].x)**2 + (vehicles[i].y - vehicles[j].y)**2)**0.5
                 # D[j][i] = D[i][j]
         
-        S = calculate_PL_shadow(N, vehicles, D, PL, S, N_S, fc=4, d_corr=10, sigmaLOS=3, sigmaNLOS=4)
-        print(D)
+        S = calculate_PL_shadow(N, vehicles, D, PL, S, N_S, fc=30, d_corr=10, sigmaLOS=3, sigmaNLOS=4)
+        # print(D)
         # print(PL)
         # print(N_S)
         # print(S)
 
         Pr = Pt - PL - S
         apply_rayleigh(Pr, N)
-        print(Pr)
+        # print(Pr)
 
         t += interval
 
         print("**************************************************")
-        # D_array.append(D[0][1])
-        # PL_array.append(PL[0][1])
-        # Pr_array.append(Pr[0][1])
+        D_array.append(D[0][1])
+        PL_array.append(PL[0][1])
+        Pr_array.append(Pr[0][1])
         
     
     # plt.plot(D_array)
-    # plt.plot(PL_array)
-    # plt.plot(Pr_array)
-    # plt.show()
+    plt.plot(PL_array)
+    plt.plot(Pr_array)
+    plt.show()
     
     # for v in vehicles:
     #     print(v.coor, "\n\n")

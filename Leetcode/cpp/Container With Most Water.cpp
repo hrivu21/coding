@@ -13,8 +13,8 @@ using namespace std;
 template <typename T>   // use of generic
 string str_vector(vector<T> v){
     string s = "[ ";
-    for(auto i: v){
-        s += to_string(i) + " ";
+    for(auto item: v){
+        s += to_string(item) + " ";
     }
     return s+"]";
 }
